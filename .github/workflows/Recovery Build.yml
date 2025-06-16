@@ -27,10 +27,6 @@ on:
         description: 'COMMON_TREE_URL'
         required: true
         default: 'https://github.com/ArKT-7/twrp_device_xiaomi_nabu'
-      COMMON_TREE_BRANCH:
-        description: 'COMMON_TREE_BRANCH'
-        required: true
-        default: '14.0'
       COMMON_PATH:
         description: 'COMMON_PATH'
         required: true
@@ -135,7 +131,7 @@ jobs:
         github.event.inputs.COMMON_TREE_URL != null
         && github.event.inputs.COMMON_PATH != null
       run: |
-        git clone ${{ github.event.inputs.COMMON_TREE_URL }} -b ${{ github.event.inputs.COMMON_TREE_BRANCH }} ./${{ github.event.inputs.COMMON_PATH }}
+        git clone ${{ github.event.inputs.COMMON_TREE_URL }} -b 14.0 ./${{ github.event.inputs.COMMON_PATH }}
       working-directory: ${{ steps.pwd.outputs.workspace-folder }}
 
     - name: Check Build Tree
