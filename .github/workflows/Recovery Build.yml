@@ -156,6 +156,8 @@ jobs:
 
     - name: Building recovery
       run: |
+        patch -p1 < device/xiaomi/nabu/.arkt-changes/bootable-recovery.patch
+        patch -p1 < device/xiaomi/nabu/.arkt-changes/build-make.patch
         source build/envsetup.sh
         export ALLOW_MISSING_DEPENDENCIES=true
         lunch ${{ github.event.inputs.MAKEFILE_NAME }}-eng && make clean && make ${{ github.event.inputs.BUILD_TARGET }}image -j$(nproc --all)
