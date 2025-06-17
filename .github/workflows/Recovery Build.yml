@@ -156,9 +156,17 @@ jobs:
         export ALLOW_MISSING_DEPENDENCIES=true
         lunch ${{ github.event.inputs.MAKEFILE_NAME }}-eng && make clean && make ${{ github.event.inputs.BUILD_TARGET }}image -j$(nproc --all)
       working-directory: ${{ steps.pwd.outputs.workspace-folder }}
-
-    - name: Upload .img file as artifact
+      
+    - name: Rename and upload .img as artifact
+      run: |
+        IMG_PATH="workspace/out/target/product/${{ github.event.inputs.DEVICE_NAME }}"
+        NEW_NAME="V4-MODDED-TWRP-NEW-$(date +'%d-%m').img"
+        mv "$IMG_PATH/${{ github.event.inputs.BUILD_TARGET }}.img" "$IMG_PATH/$NEW_NAME"
+        echo "artifact_name=$NEW_NAME" >> $GITHUB_ENV
+      shell: bash
+    
+    - name: Upload renamed .img file
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ github.event.inputs.DEVICE_NAME }}-${{ github.run_id }}.img
-        path: workspace/out/target/product/${{ github.event.inputs.DEVICE_NAME }}/${{ github.event.inputs.BUILD_TARGET }}.img
+        name: ${{ env.artifact_name }}
+        path: workspace/out/target/product/${{ github.event.inputs.DEVICE_NAME }}/${{ env.artifact_name }}
