@@ -11,7 +11,6 @@ on:
 jobs:
   ssh-debug:
     runs-on: ubuntu-latest
-    timeout-minutes: 360  # 6 hours
 
     steps:
       - name: Checkout repo
@@ -32,6 +31,3 @@ jobs:
         uses: mxschmitt/action-tmate@v3
         with:
           limit-access-to-actor: false
-
-      - name: Keep alive after SSH
-        run: sleep 21600  # 6 hours
