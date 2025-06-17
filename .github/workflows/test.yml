@@ -1,16 +1,24 @@
-name: Debug with tmate
+name: Debug with Tmate
 
 on:
   workflow_dispatch:
 
 jobs:
-  ssh-debug:
+  debug:
+    name: Tmate Debug Session
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout your repo
-        uses: actions/checkout@v4
+      - name: Install Tmate & SSH
+        run: |
+          sudo apt update
+          sudo apt install -y openssh-client openssh-server tmate
 
-      - name: Set up tmate session
+      - name: Set up SSH Key (Optional)
+        run: |
+          ssh-keygen -t rsa -b 4096 -N "" -f ~/.ssh/id_rsa
+
+      - name: Start Tmate session
         uses: mxschmitt/action-tmate@v3
-        with:
-          limit-access-to-actor: true  # Only repo owner can connect
+
+      - name: Keep alive for 2 hours (max timeout)
+        run: sleep 7200
