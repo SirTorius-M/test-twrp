@@ -1,48 +1,24 @@
-name: Recovery Build
+name: Recovery Build V4
 
 on:
   workflow_dispatch:
-    inputs:
-      MANIFEST_URL:
-        description: 'MANIFEST_URL'
-        required: true
-        default: 'https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp'
-      MANIFEST_BRANCH:
-        description: 'MANIFEST_BRANCH'
-        required: true
-        default: 'twrp-12.1'
-      DEVICE_TREE_URL:
-        description: 'DEVICE_TREE_URL'
-        required: true
-        default: 'https://github.com/ArKT-7/twrp_device_xiaomi_nabu'
-      DEVICE_TREE_BRANCH:
-        description: 'DEVICE_TREE_BRANCH'
-        required: true
-        default: 'mod'
-      DEVICE_PATH:
-        description: 'DEVICE_PATH'
-        required: true
-        default: 'device/xiaomi/nabu'
-      KERNEL_URL:
-        description: 'KERNEL_URL'
-        required: true
-        default: 'https://github.com/Kfkcome/android_kernel_xiaomi_nabu'
-      KERNEL_PATH:
-        description: 'KERNEL_PATH'
-        required: true
-        default: 'kernel/xiaomi/nabu'
-      DEVICE_NAME:
-        description: 'DEVICE_NAME'
-        required: true
-        default: 'nabu'
-      MAKEFILE_NAME:
-        description: 'MAKEFILE_NAME'
-        required: true
-        default: 'twrp_nabu'
-      BUILD_TARGET:
-        description: 'BUILD_TARGET'
-        required: true
-        default: 'boot'
+
+env:
+  # ======= CONFIGURABLE VARIABLES =======
+  MANIFEST_URL: https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp.git
+  MANIFEST_BRANCH: twrp-12.1
+
+  DEVICE_TREE_URL: https://github.com/ArKT-7/twrp_device_xiaomi_nabu.git
+  DEVICE_TREE_BRANCH: mod
+  DEVICE_PATH: device/xiaomi/nabu
+
+  KERNEL_URL: https://github.com/Kfkcome/android_kernel_xiaomi_nabu.git
+  KERNEL_BRANCH: "14.0"
+  KERNEL_PATH: kernel/xiaomi/nabu
+
+  DEVICE_NAME: nabu
+  MAKEFILE_NAME: twrp_nabu
+  BUILD_TARGET: boot
 
 jobs:
   build:
@@ -50,123 +26,90 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       contents: write
-    steps:
-    - name: Display Run Parameters
-      run: |
-        echo "::group::User Environment Variables"
-        echo "Manifest URL: ${{ github.event.inputs.MANIFEST_URL }}"
-        echo "Manifest Branch: ${{ github.event.inputs.MANIFEST_BRANCH }}"
-        echo "Device Tree URL: ${{ github.event.inputs.DEVICE_TREE_URL }}"
-        echo "Device Tree Branch: ${{ github.event.inputs.DEVICE_TREE_BRANCH }}"
-        echo "Device Path: ${{ github.event.inputs.DEVICE_PATH }}"
-        echo "Device Name: ${{ github.event.inputs.DEVICE_NAME }}"
-        echo "Makefile Name: ${{ github.event.inputs.MAKEFILE_NAME }}"
-        echo "Build Target: ${{ github.event.inputs.BUILD_TARGET }}.img"
-        echo "::endgroup::"
 
-    # You might want to Checkout your repo first, but not mandatory
-    - name: Check Out
+    steps:
+    - name: Checkout Repo
       uses: actions/checkout@v4
 
-    # Cleanup The Actions Workspace Using Custom Composite Run Actions
-    - name: Cleanup
+    - name: Clean Workspace
       uses: rokibhasansagar/slimhub_actions@main
-      # That's it! Now use your normal steps
 
-    - name: Prepare the environment
+    - name: Install Dependencies
       run: |
         sudo apt update && sudo apt upgrade -y
-        DEBIAN_FRONTEND=noninteractive sudo apt install -yq \
-            linux-modules-extra-$(uname -r) \
-            gperf gcc-multilib gcc-10-multilib g++-multilib g++-10-multilib \
-            libc6-dev lib32ncurses-dev x11proto-core-dev libx11-dev tree lib32z-dev libgl1-mesa-dev libxml2-utils \
-            xsltproc bc ccache lib32readline-dev lib32z1-dev liblz4-tool libncurses-dev libsdl1.2-dev \
-            build-essential libgtk-3-dev libglu1-mesa-dev freeglut3-dev git libxml2 lzop pngcrush schedtool squashfs-tools \
-            imagemagick libbz2-dev lzma ncftp qemu-user-static libstdc++-10-dev libncurses6 python3 tar neofetch
+        DEBIAN_FRONTEND=noninteractive sudo apt install -y \
+          gperf gcc-multilib g++-multilib gcc-10-multilib g++-10-multilib \
+          libc6-dev lib32ncurses-dev x11proto-core-dev libx11-dev tree lib32z-dev libgl1-mesa-dev libxml2-utils \
+          xsltproc bc ccache liblz4-tool libncurses-dev libsdl1.2-dev \
+          build-essential libgtk-3-dev libglu1-mesa-dev freeglut3-dev git libxml2 lzop pngcrush schedtool squashfs-tools \
+          imagemagick libbz2-dev lzma ncftp qemu-user-static libstdc++-10-dev libncurses6 python3 tar neofetch
 
-    - name: Install OpenJDK
+    - name: Setup Java
       uses: actions/setup-java@v4
       with:
         distribution: 'zulu'
         java-version: '11'
 
-    - name: Setup SSH Keys
-      if: ${{ startsWith(github.event.inputs.MANIFEST_URL, 'git@github.com') || 
-          startsWith(github.event.inputs.DEVICE_TREE_URL, 'git@github.com') ||
-          startsWith(github.event.inputs.KERNEL_URL, 'git@github.com') }}
+    - name: Setup SSH Keys (if needed)
+      if: |
+        startsWith(env.MANIFEST_URL, 'git@github.com') ||
+        startsWith(env.DEVICE_TREE_URL, 'git@github.com') ||
+        startsWith(env.KERNEL_URL, 'git@github.com')
       uses: webfactory/ssh-agent@v0.9.0
       with:
-          ssh-private-key: |
-            ${{ secrets.SSH_PRIVATE_KEY }}
+        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-    - name: Install repo
+    - name: Install repo tool
       run: |
-        mkdir ~/bin
+        mkdir -p ~/bin
         curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
         chmod a+x ~/bin/repo
         sudo ln -sf ~/bin/repo /usr/bin/repo
 
-    - name: Initialize repo
+    - name: Init and Sync Repo
       run: |
-        mkdir workspace
-        cd workspace
-        echo "workspace-folder=$(pwd)" >> $GITHUB_OUTPUT
+        mkdir workspace && cd workspace
         git config --global user.name "Nico170420"
         git config --global user.email "b170420nc@gmail.com"
-        repo init --depth=1 -u ${{ github.event.inputs.MANIFEST_URL }} -b ${{ github.event.inputs.MANIFEST_BRANCH }}
-      id: pwd
-
-    - name: Repo Sync
-      run: |
+        repo init --depth=1 -u "$MANIFEST_URL" -b "$MANIFEST_BRANCH"
         repo sync -j$(nproc --all) --force-sync
+
+    - name: Clone Device Tree
+      run: |
+        git clone "$DEVICE_TREE_URL" -b "$DEVICE_TREE_BRANCH" "$DEVICE_PATH"
       working-directory: workspace
 
-    - name: Clone device tree
-      run: |
-        git clone ${{ github.event.inputs.DEVICE_TREE_URL }} -b ${{ github.event.inputs.DEVICE_TREE_BRANCH }} ./${{ github.event.inputs.DEVICE_PATH }}
-      working-directory: ${{ steps.pwd.outputs.workspace-folder }}
-
     - name: Clone Kernel
-      if: |
-        github.event.inputs.KERNEL_URL != null
-        && github.event.inputs.KERNEL_PATH != null
       run: |
-        git clone ${{ github.event.inputs.KERNEL_URL }} -b 14.0 ./${{ github.event.inputs.KERNEL_PATH }}
-      working-directory: ${{ steps.pwd.outputs.workspace-folder }}
-
-    - name: Check Build Tree
-      uses: haya14busa/action-cond@v1
-      id: buildtree
-      with:
-        cond: ${{ github.event.inputs.MANIFEST_BRANCH == 'twrp-11' || github.event.inputs.MANIFEST_BRANCH == 'twrp-12.1' }}
-        if_true: twrp
-        if_false: omni
+        git clone "$KERNEL_URL" -b "$KERNEL_BRANCH" "$KERNEL_PATH"
+      working-directory: workspace
 
     - name: Set Swap Space
       uses: pierotofy/set-swap-space@master
       with:
         swap-size-gb: 12
 
-    - name: Building recovery
+    - name: Build Recovery
       run: |
         neofetch
-        patch -p1 < device/xiaomi/nabu/.arkt-changes/bootable-recovery.patch
-        patch -p1 < device/xiaomi/nabu/.arkt-changes/build-make.patch
+        patch -p1 < "$DEVICE_PATH/.arkt-changes/bootable-recovery.patch"
+        patch -p1 < "$DEVICE_PATH/.arkt-changes/build-make.patch"
         source build/envsetup.sh
         export ALLOW_MISSING_DEPENDENCIES=true
-        lunch ${{ github.event.inputs.MAKEFILE_NAME }}-eng && make clean && make ${{ github.event.inputs.BUILD_TARGET }}image -j$(nproc --all)
-      working-directory: ${{ steps.pwd.outputs.workspace-folder }}
-      
-    - name: Rename and upload .img as artifact
+        lunch "${MAKEFILE_NAME}-eng"
+        make clean
+        make "${BUILD_TARGET}image" -j$(nproc --all)
+      working-directory: workspace
+
+    - name: Rename Output
       run: |
-        IMG_PATH="workspace/out/target/product/${{ github.event.inputs.DEVICE_NAME }}"
-        NEW_NAME="V4-MODDED-TWRP-NEW-$(date +'%d-%m').img"
-        mv "$IMG_PATH/${{ github.event.inputs.BUILD_TARGET }}.img" "$IMG_PATH/$NEW_NAME"
-        echo "artifact_name=$NEW_NAME" >> $GITHUB_ENV
-      shell: bash
-    
-    - name: Upload renamed .img file
+        OUT=workspace/out/target/product/${DEVICE_NAME}
+        IMG=V4-MODDED-TWRP-NEW-$(date +'%d-%m').img
+        mv "$OUT/${BUILD_TARGET}.img" "$OUT/$IMG"
+        echo "artifact_name=$IMG" >> $GITHUB_ENV
+
+    - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
         name: ${{ env.artifact_name }}
-        path: workspace/out/target/product/${{ github.event.inputs.DEVICE_NAME }}/${{ env.artifact_name }}
+        path: workspace/out/target/product/${{ env.DEVICE_NAME }}/${{ env.artifact_name }}
