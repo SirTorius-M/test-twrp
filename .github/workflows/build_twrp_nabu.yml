@@ -17,7 +17,7 @@ jobs:
       DEVICE_TREE_BRANCH: mod
       DEVICE_PATH: device/xiaomi/nabu
       KERNEL_URL: https://github.com/Kfkcome/android_kernel_xiaomi_nabu
-      KERNEL_BRANCH: 14.0
+      KERNEL_BRANCH: '14.0'
       KERNEL_PATH: kernel/xiaomi/nabu
       DEVICE_NAME: nabu
       MAKEFILE_NAME: twrp_nabu
