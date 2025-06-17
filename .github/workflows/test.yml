@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       DEVICE_NAME:
-        description: 'Device Codename (optional)'
+        description: Device Codename (optional)
         required: false
-        default: 'example_device'
+        default: example_device
 
 jobs:
   ssh-debug:
