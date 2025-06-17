@@ -1,33 +1,16 @@
-name: Manual SSH Debug Runner
+name: Debug with tmate
 
 on:
   workflow_dispatch:
-    inputs:
-      DEVICE_NAME:
-        description: Device Codename (optional)
-        required: false
-        default: example_device
 
 jobs:
   ssh-debug:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repo
+      - name: Checkout your repo
         uses: actions/checkout@v4
 
-      - name: Print input
-        run: echo "Device: ${{ github.event.inputs.DEVICE_NAME }}"
-
-      - name: Free up disk space
-        run: |
-          echo "Freeing up space..."
-          sudo rm -rf /usr/share/dotnet \
-                      /opt/ghc \
-                      /usr/local/share/boost \
-                      /usr/local/lib/android
-
-      - name: Setup SSH session with tmate
+      - name: Set up tmate session
         uses: mxschmitt/action-tmate@v3
         with:
-          limit-access-to-actor: false
+          limit-access-to-actor: true  # Only repo owner can connect
