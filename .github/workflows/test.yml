@@ -23,12 +23,15 @@ jobs:
       - name: Free up disk space
         run: |
           echo "Freeing up space..."
-          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost /usr/local/lib/android
+          sudo rm -rf /usr/share/dotnet \
+                      /opt/ghc \
+                      /usr/local/share/boost \
+                      /usr/local/lib/android
 
       - name: Setup SSH session with tmate
         uses: mxschmitt/action-tmate@v3
         with:
-          limit-access-to-actor: false  # set to true to restrict to GitHub triggerer
+          limit-access-to-actor: false
 
-      - name: Keep alive (in case tmate ends)
-        run: sleep 21600  # 6 hours = 360 minutes
+      - name: Keep alive after SSH
+        run: sleep 21600  # 6 hours
