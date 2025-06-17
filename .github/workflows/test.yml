@@ -1,0 +1,34 @@
+name: Manual SSH Debug Runner
+
+on:
+  workflow_dispatch:
+    inputs:
+      DEVICE_NAME:
+        description: 'Device Codename (optional)'
+        required: false
+        default: 'example_device'
+
+jobs:
+  ssh-debug:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360  # 6 hours
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Print input
+        run: echo "Device: ${{ github.event.inputs.DEVICE_NAME }}"
+
+      - name: Free up disk space
+        run: |
+          echo "Freeing up space..."
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost /usr/local/lib/android
+
+      - name: Setup SSH session with tmate
+        uses: mxschmitt/action-tmate@v3
+        with:
+          limit-access-to-actor: false  # set to true to restrict to GitHub triggerer
+
+      - name: Keep alive (in case tmate ends)
+        run: sleep 21600  # 6 hours = 360 minutes
